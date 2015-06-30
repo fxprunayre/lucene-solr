@@ -93,6 +93,48 @@ public class XsltUpdateRequestHandlerTest extends SolrTestCaseJ4 {
             , "//int[@name='id'][.='12345']"
         );
   }
+
+  @Test
+  public void testUpdateWithParameter() throws Exception
+  {
+    String xml =
+        "<random>" +
+            " <document>" +
+            "  <node name=\"id\" value=\"12345\"/>" +
+            "  <node name=\"name\" value=\"kitten\"/>" +
+            "  <node name=\"text\" enhance=\"3\" value=\"some other day\"/>" +
+            "  <node name=\"title\" enhance=\"4\" value=\"A story\"/>" +
+            "  <node name=\"timestamp\" enhance=\"5\" value=\"2011-07-01T10:31:57.140Z\"/>" +
+            " </document>" +
+            "</random>";
+
+    Map<String,String> args = new HashMap<>();
+    args.put(CommonParams.TR, "xsl-update-handler-with-parameter-test.xsl");
+    args.put("myXsltParameter", "setByParameter");
+
+    SolrCore core = h.getCore();
+    LocalSolrQueryRequest req = new LocalSolrQueryRequest( core, new MapSolrParams( args) );
+    ArrayList<ContentStream> streams = new ArrayList<>();
+    streams.add(new ContentStreamBase.StringStream(xml));
+    req.setContentStreams(streams);
+    SolrQueryResponse rsp = new SolrQueryResponse();
+    UpdateRequestHandler handler = new UpdateRequestHandler();
+    handler.init(new NamedList<String>());
+    handler.handleRequestBody(req, rsp);
+    StringWriter sw = new StringWriter(32000);
+    QueryResponseWriter responseWriter = core.getQueryResponseWriter(req);
+    responseWriter.write(sw,req,rsp);
+    req.close();
+    String response = sw.toString();
+    assertU(response);
+    assertU(commit());
+
+    assertQ("test document was correctly committed", req("q","*:*")
+        , "//result[@numFound='1']"
+        , "//int[@name='id'][.='12345']"
+        , "//arr[@name='name']/str[.='kitten+param:setByParameter']"
+    );
+  }
   
   @Test
   public void testEntities() throws Exception

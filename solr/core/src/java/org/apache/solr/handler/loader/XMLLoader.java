@@ -33,6 +33,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -143,6 +144,12 @@ public class XMLLoader extends ContentStreamLoader {
         xmlr.setErrorHandler(xmllog);
         xmlr.setEntityResolver(EmptyEntityResolver.SAX_INSTANCE);
         final SAXSource source = new SAXSource(xmlr, isrc);
+
+        Iterator<String> parameterIterator = req.getParams().getParameterNamesIterator();
+        while(parameterIterator.hasNext()) {
+          String parameterName = parameterIterator.next();
+          t.setParameter(parameterName, req.getParams().get(parameterName));
+        }
         t.transform(source, result);
       } catch(TransformerException te) {
         throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, te.getMessage(), te);
